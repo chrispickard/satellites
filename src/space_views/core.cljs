@@ -38,7 +38,7 @@
              (:results (:body (a/<! (perform-request lat lon)))))))
 
 (defn space-component []
-  [:h2 (fnil (:date (last (:location @app-state))) "nothing")])
+  [:h2 (:date (last (:location @app-state)) "nothing")])
 
 (defn button-component []
   [:input {:type "button" :value "new pic bro"
