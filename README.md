@@ -1,9 +1,5 @@
 # space-views
 
-FIXME: Write a one-line description of your library/project.
-
-## Overview
-
 Figure out the last time a NASA satellite took a picture of your house
 
 ## Setup
