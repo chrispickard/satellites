@@ -9,7 +9,9 @@
   :dependencies [[org.clojure/clojure "1.8.0"]
                  [org.clojure/clojurescript "1.7.170"]
                  [reagent "0.6.0-alpha"]
+                 [reagent-forms "0.5.22"]
                  [cljs-http "0.1.39"]
+                 [com.andrewmcveigh/cljs-time "0.4.0"]
                  [org.clojure/core.async "0.2.374"
                   :exclusions [org.clojure/tools.reader]]]
 

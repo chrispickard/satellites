@@ -2,6 +2,7 @@
   (:require-macros [cljs.core.async.macros :as m :refer [go]])
   (:require [reagent.core :as r]
             [cljs.core.async :as a]
+            [cljs-time.format :as f :refer [parse unparse formatters]]
             [cljs-http.client :as http] ))
 
 (enable-console-print!)
@@ -11,6 +12,8 @@
 ;; define your app data so that it doesn't get over-written on reload
 
 (defonce app-state (r/atom {}))
+(defonce in-format (f/formatters :date-hour-minute-second))
+(defonce out-format (f/formatters :date-hour-minute-second))
 
 (defn perform-request
   ""
@@ -25,29 +28,72 @@
      "lon" lon}})
   )
 
+(defn swap-to
+  ""
+  [value name target]
+  (swap! value assoc (keyword name) (-> target .-target .-value))
+  (println @value))
+
+
 (defn last-date
   ""
   [result]
-  (:date (last (:location result))))
+  (:date (last result)))
+(defn input-elem
+  "an input elem that updates on change"
+  [id name type value]
+  [:input {:id id
+           :name name
+           :class "form-control"
+           :type type
+           :placeholder name
+           :required ""
+           :value @value
+           :on-change #(swap-to value name %)}])
+
+(defn lat-input
+  ""
+  [email-address-atom]
+  (input-elem "lat" "lat" "text" email-address-atom)
+  )
+
+(defn lon-input
+  ""
+  [email-address-atom]
+  (input-elem "lon" "lon" "text" email-address-atom)
+  )
+
 
 (defn swap-with-new-input
   ""
   [lat lon]
   (println lat lon)
   (go (swap! app-state assoc-in [:location]
-             (:results (:body (a/<! (perform-request lat lon)))))))
+             (:body (a/<! (perform-request lat lon))))))
 
 (defn space-component []
-  [:h2 (:date (last (:location @app-state)) "nothing")])
+  [:h2 (str (last-date (:results (:location @app-state))))])
+
+(defn to-float
+  "converts a numeric string to a float"
+  [s]
+  (js/parseFloat s)
+  )
 
 (defn button-component []
-  [:input {:type "button" :value "new pic bro"
-           :on-click #(swap-with-new-input 39 -45)}])
+  (let [local (r/atom nil)]
+    (fn []
+      [:form
+       [lat-input local]
+       [lon-input local]
+       [:input {:type "button" :value "submit"
+                :on-click #(swap-with-new-input (js/parseFloat (:lat @local)) (js/parseFloat (:lon @local)))}]])))
 
 
 (defn ^:export run []
   (r/render [space-component] (by-id "app"))
-  (r/render [button-component] (by-id "button")))
+  (r/render [button-component] (by-id "button"))
+  #_(r/render [button-component] (by-id "button")))
 
 (run)
 (defn on-js-reload []
