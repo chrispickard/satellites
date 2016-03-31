@@ -82,14 +82,19 @@
   (js/parseFloat s)
   )
 
+(defn click-button
+  ""
+  []
+  (swap-with-new-input (js/parseFloat (:lat @app-state)) (js/parseFloat (:lon @app-state)))
+  )
+
 (defn button-component []
   (fn []
     [:form
      [lat-input app-state]
      [lon-input app-state]
      [:input {:type "button" :value "submit"
-              :on-click #(swap-with-new-input
-                          (js/parseFloat (:lat @app-state)) (js/parseFloat (:lon @app-state)))}]]))
+              :on-click click-button}]]))
 
 
 (defn ^:export run []
