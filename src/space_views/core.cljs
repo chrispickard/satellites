@@ -31,7 +31,8 @@
 (defn swap-to
   ""
   [value name target]
-  (swap! value assoc (keyword name) (-> target .-target .-value))
+  (println target)
+  (swap! value assoc (keyword name) target)
   (println @value))
 
 
@@ -39,6 +40,7 @@
   ""
   [result]
   (:date (last result)))
+
 (defn input-elem
   "an input elem that updates on change"
   [id name type value]
@@ -48,8 +50,8 @@
            :type type
            :placeholder name
            :required ""
-           :value @value
-           :on-change #(swap-to value name %)}])
+           :value ((keyword id) @app-state)
+           :on-change #(swap! value assoc (keyword id) (-> % .-target .-value))}])
 
 (defn lat-input
   ""
@@ -81,19 +83,19 @@
   )
 
 (defn button-component []
-  (let [local (r/atom nil)]
-    (fn []
-      [:form
-       [lat-input local]
-       [lon-input local]
-       [:input {:type "button" :value "submit"
-                :on-click #(swap-with-new-input (js/parseFloat (:lat @local)) (js/parseFloat (:lon @local)))}]])))
+  (fn []
+    [:form
+     [lat-input app-state]
+     [lon-input app-state]
+     [:input {:type "button" :value "submit"
+              :on-click #(swap-with-new-input
+                          (js/parseFloat (:lat @app-state)) (js/parseFloat (:lon @app-state)))}]]))
 
 
 (defn ^:export run []
   (r/render [space-component] (by-id "app"))
   (r/render [button-component] (by-id "button"))
-  #_(r/render [button-component] (by-id "button")))
+  )
 
 (run)
 (defn on-js-reload []
