@@ -10,8 +10,8 @@
 ;; define your app data so that it doesn't get over-written on reload
 
 (defonce app-state (r/atom {:address ""}))
-(defonce in-format (f/formatters :date-hour-minute-second))
-(defonce out-format (f/formatters :year))
+(def in-format (f/formatters :date-hour-minute-second))
+(def out-format (f/formatters :year))
 
 (defn by-id [id]
   (.getElementById js/document id))
@@ -77,7 +77,10 @@
 (defn format-date
   ""
   [iso-date]
-  (unparse out-format (parse in-format iso-date)))
+  (when iso-date
+    (let [in-date (parse in-format iso-date)]
+      (when in-date
+        (unparse out-format in-date)))))
 
 (defn get-iso-date
   ""
@@ -90,23 +93,28 @@
   (js/parseFloat s))
 
 (defn space-component []
-  [:h2 (get-iso-date @app-state)])
+  [:h2 (format-date (get-iso-date @app-state))])
 
 (defn click-button
   ""
   []
   (go (let [m (a/<! (perform-request-geocode (:address @app-state)))]
-        (println "here")
         (when (:success m)
-          (swap-with-new-input
-           (to-float (:lat @app-state))
-           (to-float (:lon @app-state)))))))
+          (let [geometry (-> m
+                             :body
+                             :results
+                             first
+                             :geometry)]
+            (swap-with-new-input
+             (to-float (:lat geometry))
+             (to-float (:lng geometry))))))))
 
 (defn button-component []
   (fn []
     [:form
      [address-input app-state]
-     [:input {:type "button" :value "submit"
+     [:input {:type "button"
+              :value "submit"
               :on-click click-button}]]))
 
 
