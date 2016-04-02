@@ -95,9 +95,12 @@
 (defn click-button
   ""
   []
-  (swap-with-new-input
-   (to-float (:lat @app-state))
-   (to-float (:lon @app-state))))
+  (go (let [m (a/<! (perform-request-geocode (:address @app-state)))]
+        (println "here")
+        (when (:success m)
+          (swap-with-new-input
+           (to-float (:lat @app-state))
+           (to-float (:lon @app-state)))))))
 
 (defn button-component []
   (fn []
