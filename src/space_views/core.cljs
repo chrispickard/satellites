@@ -6,19 +6,19 @@
             [cljs-http.client :as http] ))
 
 (enable-console-print!)
-(defn by-id [id]
-  (.getElementById js/document id))
 
 ;; define your app data so that it doesn't get over-written on reload
 
-(defonce app-state (r/atom {}))
+(defonce app-state (r/atom {:address ""}))
 (defonce in-format (f/formatters :date-hour-minute-second))
-(defonce out-format (f/formatters :date-hour-minute-second))
+(defonce out-format (f/formatters :year))
+
+(defn by-id [id]
+  (.getElementById js/document id))
 
 (defn perform-request
   ""
   [lat lon]
-  (println "requesting")
   (http/get
    "https://api.nasa.gov/planetary/earth/assets"
    {:with-credentials? false
@@ -28,20 +28,29 @@
      "lon" lon}})
   )
 
+(defn perform-request-geocode
+  ""
+  [placename]
+  (http/get
+   "http://api.opencagedata.com/geocode/v1/json"
+   {:with-credentials? false
+    :query-params
+    {"key" "886be0e3768c1f8d8f03333e60130d54"
+     "q" placename}})
+  )
+
 (defn swap-to
   ""
   [value name target]
-  (println target)
-  (swap! value assoc (keyword name) target)
-  (println @value))
+  (swap! value assoc (keyword name) target))
 
 
-(defn last-date
+(defn most-recent-date
   ""
   [result]
   (:date (last result)))
 
-(defn input-elem
+(defn input-element
   "an input elem that updates on change"
   [id name type value]
   [:input {:id id
@@ -53,54 +62,54 @@
            :value ((keyword id) @app-state)
            :on-change #(swap! value assoc (keyword id) (-> % .-target .-value))}])
 
-(defn lat-input
+(defn address-input
   ""
-  [email-address-atom]
-  (input-elem "lat" "lat" "text" email-address-atom)
-  )
-
-(defn lon-input
-  ""
-  [email-address-atom]
-  (input-elem "lon" "lon" "text" email-address-atom)
-  )
+  [address-atom]
+  (input-element "address" "address" "text" address-atom))
 
 
 (defn swap-with-new-input
   ""
   [lat lon]
-  (println lat lon)
   (go (swap! app-state assoc-in [:location]
              (:body (a/<! (perform-request lat lon))))))
 
-(defn space-component []
-  [:h2 (str (last-date (:results (:location @app-state))))])
+(defn format-date
+  ""
+  [iso-date]
+  (unparse out-format (parse in-format iso-date)))
+
+(defn get-iso-date
+  ""
+  [m]
+  (most-recent-date (:results (:location m))))
 
 (defn to-float
   "converts a numeric string to a float"
   [s]
-  (js/parseFloat s)
-  )
+  (js/parseFloat s))
+
+(defn space-component []
+  [:h2 (get-iso-date @app-state)])
 
 (defn click-button
   ""
   []
-  (swap-with-new-input (js/parseFloat (:lat @app-state)) (js/parseFloat (:lon @app-state)))
-  )
+  (swap-with-new-input
+   (to-float (:lat @app-state))
+   (to-float (:lon @app-state))))
 
 (defn button-component []
   (fn []
     [:form
-     [lat-input app-state]
-     [lon-input app-state]
+     [address-input app-state]
      [:input {:type "button" :value "submit"
               :on-click click-button}]]))
 
 
 (defn ^:export run []
   (r/render [space-component] (by-id "app"))
-  (r/render [button-component] (by-id "button"))
-  )
+  (r/render [button-component] (by-id "button")))
 
 (run)
 (defn on-js-reload []
