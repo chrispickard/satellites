@@ -2,7 +2,7 @@
   (:require-macros [cljs.core.async.macros :as m :refer [go]])
   (:require [reagent.core :as r]
             [cljs.core.async :as a]
-            [cljs-time.format :as f :refer [parse unparse formatters]]
+            [cljs-time.format :as f :refer [parse unparse formatter formatters]]
             [cljs-http.client :as http] ))
 
 (enable-console-print!)
@@ -10,13 +10,14 @@
 ;; define your app data so that it doesn't get over-written on reload
 
 (defonce app-state (r/atom {:address ""}))
-(def in-format (f/formatters :date-hour-minute-second))
-(def out-format (f/formatters :year))
+(def in-format (formatters :date-hour-minute-second))
+(def out-format (formatter "dow MMMM dd yyyy 'at' hh:mm a"))
+
 
 (defn by-id [id]
   (.getElementById js/document id))
 
-(defn perform-request
+(defn perform-nasa-request
   ""
   [lat lon]
   (http/get
@@ -72,7 +73,7 @@
   ""
   [lat lon]
   (go (swap! app-state assoc-in [:location]
-             (:body (a/<! (perform-request lat lon))))))
+             (:body (a/<! (perform-nasa-request lat lon))))))
 
 (defn format-date
   ""
@@ -85,7 +86,10 @@
 (defn get-iso-date
   ""
   [m]
-  (most-recent-date (:results (:location m))))
+  (-> m
+      :location
+      :results
+      most-recent-date))
 
 (defn to-float
   "converts a numeric string to a float"
@@ -95,16 +99,21 @@
 (defn space-component []
   [:h2 (format-date (get-iso-date @app-state))])
 
+(defn get-geometry
+  ""
+  [m]
+  (-> m
+      :body
+      :results
+      first
+      :geometry))
+
 (defn click-button
   ""
   []
   (go (let [m (a/<! (perform-request-geocode (:address @app-state)))]
         (when (:success m)
-          (let [geometry (-> m
-                             :body
-                             :results
-                             first
-                             :geometry)]
+          (let [geometry (get-geometry m)]
             (swap-with-new-input
              (to-float (:lat geometry))
              (to-float (:lng geometry))))))))
